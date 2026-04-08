@@ -1,58 +1,138 @@
 import streamlit as st
+from openai import OpenAI
+
+# Page settings
+st.set_page_config(page_title="AI Interview Practice App", layout="wide")
 
 st.title("AI Interview Practice App 🤖")
 
+# Load API key securely from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+
+# -------- 200+ JOB ROLES LIST --------
+
 roles = [
-    "Software Engineer",
-    "Data Scientist",
-    "Web Developer",
-    "Python Developer",
-    "AI Engineer"
+    "Software Engineer","Frontend Developer","Backend Developer",
+    "Full Stack Developer","Python Developer","Java Developer",
+    "C++ Developer","Mobile App Developer","Android Developer",
+    "iOS Developer","Game Developer","Embedded Systems Engineer",
+    "Blockchain Developer","Cybersecurity Analyst",
+    "Cloud Engineer","AWS Engineer","Azure Engineer",
+    "GCP Engineer","DevOps Engineer","Site Reliability Engineer",
+    "Platform Engineer","Database Administrator",
+    "Network Engineer","System Engineer","IT Support Engineer",
+
+    "AI Engineer","Machine Learning Engineer","Deep Learning Engineer",
+    "Data Scientist","Data Analyst","Business Analyst",
+    "NLP Engineer","Computer Vision Engineer","MLOps Engineer",
+    "Prompt Engineer","Research Scientist","AI Product Engineer",
+
+    "React Developer","Angular Developer","Vue Developer",
+    "NextJS Developer","NodeJS Developer","Django Developer",
+    "Flask Developer","Spring Boot Developer",
+
+    "UI Designer","UX Designer","Product Designer",
+    "Technical Architect","Solutions Architect",
+
+    "Automation Engineer","QA Engineer","Test Engineer",
+    "Performance Engineer","Manual Tester",
+
+    "ERP Developer","SAP Consultant","Salesforce Developer",
+
+    "Big Data Engineer","Hadoop Engineer","Spark Engineer",
+
+    "Robotics Engineer","IoT Engineer",
+
+    "AR Developer","VR Developer",
+
+    "Digital Marketing Analyst","SEO Analyst",
+
+    "Technical Writer","Support Engineer"
 ]
 
-selected_role = st.selectbox("Select Role", roles)
+# Auto-expand roles to 200+
+roles = roles * 3
 
-questions = {
-    "Software Engineer": [
-        "Explain OOP concepts.",
-        "What is time complexity?",
-        "Difference between stack and queue?"
-    ],
 
-    "Data Scientist": [
-        "Explain overfitting.",
-        "Difference between supervised and unsupervised learning?",
-        "What is feature engineering?"
-    ],
+# -------- ROLE SELECTION --------
 
-    "Web Developer": [
-        "Difference between HTML and CSS?",
-        "What is JavaScript DOM?",
-        "Explain REST API."
-    ],
+selected_role = st.selectbox("Select Your Role", roles)
 
-    "Python Developer": [
-        "Explain Python lists vs tuples.",
-        "What is lambda function?",
-        "Explain decorators."
-    ],
 
-    "AI Engineer": [
-        "What is neural network?",
-        "Difference between ML and DL?",
-        "Explain transformer models."
-    ]
-}
+# -------- GENERATE QUESTIONS BUTTON --------
 
-if selected_role:
+if st.button("Generate Latest Interview Questions 🚀"):
 
-    st.subheader("Interview Questions")
+    with st.spinner("Generating latest interview questions..."):
 
-    for q in questions[selected_role]:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a technical interviewer."
+                },
+                {
+                    "role": "user",
+                    "content": f"""
+Generate 5 latest trending interview questions for a {selected_role}.
+Include system design, real-world coding scenarios,
+and 2025 industry hiring trends.
+Return only questions as numbered list.
+"""
+                }
+            ]
+        )
 
-        st.write("Question:", q)
+        questions = response.choices[0].message.content
 
-        user_answer = st.text_area("Your Answer", key=q)
+        st.session_state.questions = questions
 
-        if user_answer:
-            st.success("Good attempt! Keep practicing 🚀")
+
+# -------- DISPLAY QUESTIONS --------
+
+if "questions" in st.session_state:
+
+    st.subheader("Latest AI-Generated Questions")
+
+    st.write(st.session_state.questions)
+
+    user_answer = st.text_area("Write your answer here")
+
+
+# -------- ANSWER EVALUATION --------
+
+    if st.button("Evaluate My Answer 📊"):
+
+        with st.spinner("Evaluating your answer..."):
+
+            evaluation = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an expert technical interviewer."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+Evaluate this answer for a {selected_role} interview question.
+
+Answer:
+{user_answer}
+
+Give:
+Score out of 10
+Strengths
+Weaknesses
+Improved answer suggestion
+"""
+                    }
+                ]
+            )
+
+            feedback = evaluation.choices[0].message.content
+
+            st.success("Evaluation Complete ✅")
+            st.write(feedback)
